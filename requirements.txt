@@ -1,0 +1,6 @@
+discord
+pymongo
+dnspython
+requests
+discord_components
+pillow

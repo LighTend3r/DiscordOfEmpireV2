@@ -1,0 +1,7 @@
+**/__pycache__
+*.pyc
+__pycache__/stat_outil.cpython-39.pyc
+test DoE.py
+TOKEN.txt
+TOKEN_TOP_SERVEUR.txt
+URL_MONGO.txt
