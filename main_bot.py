@@ -15,12 +15,13 @@ from PIL import Image, ImageDraw, ImageFont
 import io
 
 
-TOKEN_TOP_SERVEUR = open("TOKEN_TOP_SERVEUR").read()
+TOKEN_TOP_SERVEUR = open("TOKEN_TOP_SERVEUR.txt").read()
 
 default_intents = discord.Intents.default()
+default_intents.message_content = True
 default_intents.members = True
 
-bot = commands.Bot(command_prefix="!",intents = default_intents)
+bot = commands.Bot(command_prefix="!", intents = default_intents)
 
 
 def next_level(current_level, xp):
@@ -158,7 +159,7 @@ channel_lobaratoire_eau_id = 863789453054181426
 channel_lobaratoire_air_id = 863789381898338334
 channel_reception_id = 862788903152779264
 channel_next_level_id = 859436535463542803
-channel_règlement_id = 859885182265458708
+channel_reglement_id = 859885182265458708
 channel_commande_actuelles_id = 858388015013560350
 channel_report_id = 859883210015375380
 channel_zone_de_récolte_id = 862811056879173632
@@ -230,8 +231,8 @@ async def on_member_join(member):
 
 		channel_reception = discord.utils.find(
 			lambda c: c.id == channel_reception_id, member.guild.channels)
-		channel_règlement = discord.utils.find(
-			lambda c: c.id == channel_règlement_id, member.guild.channels)
+		channel_reglement = discord.utils.find(
+			lambda c: c.id == channel_reglement_id, member.guild.channels)
 		channel_commande_actuelles = discord.utils.find(
 			lambda c: c.id == channel_commande_actuelles_id, member.guild.channels)
 		channel_zone_de_récolte = discord.utils.find(
@@ -844,7 +845,7 @@ async def lvl(ctx):
 
 	font = ImageFont.truetype('Consolas.ttf', 11)
 
-	text_width, text_height = draw.textsize(text_name, font=font)
+	text_width, text_height = draw.textbbox((0, 0),text_name, font=font)[2:]
 	x = IMAGE_WIDTH - text_width - 27
 	y = 80
 
@@ -855,7 +856,7 @@ async def lvl(ctx):
 
 	font = ImageFont.truetype('Consolas.ttf', 16)
 
-	text_width, text_height = draw.textsize(text_niveau, font=font)
+	text_width, text_height = draw.textbbox((0, 0),text_niveau, font=font)[2:]
 	x = 18 + 64 + 8
 	y = (IMAGE_HEIGHT - text_height)//2 - 15
 
@@ -866,7 +867,7 @@ async def lvl(ctx):
 
 	font = ImageFont.truetype('Consolas.ttf', 14)
 
-	text_width, text_height = draw.textsize(text_xp, font=font)
+	text_width, text_height = draw.textbbox((0, 0),text_xp, font=font)[2:]
 	x = 90
 	y = 54
 
@@ -874,7 +875,7 @@ async def lvl(ctx):
 
 	# --- Avatare ---
 	AVATAR_SIZE = 64
-	avatar_asset = ctx.author.avatar_url_as(format='jpg', size=AVATAR_SIZE)
+	avatar_asset = ctx.author.avatar.with_format('jpg')
 
 	# read JPG from server to buffer (file-like object)
 	buffer_avatar = io.BytesIO()
@@ -924,6 +925,7 @@ async def godfather(ctx, member: discord.Member):
 
 	if ctx.author.id == member.id:
 		return await ctx.channel.send(f"Tu ne peux pas te parrainer toi même, l'ami {ctx.author.mention}")
+		
 	collection.update_one({"_id": ctx.author.id}, {"$set": {"godfather": True}})
 	collection.update_one({"_id": member.id}, {"$inc": {"invite": 1}})
 
@@ -1837,7 +1839,7 @@ async def inv(ctx):
 	embed.add_field(name="**Pierres précieuses:**",
 	                value=f"Géode: {author_géode}\nQuartz: {author_quartz}\nEmeraude: {author_emerald}\nSaphire: {author_sapphire}\nRubis: {author_ruby}")
 
-	embed.set_thumbnail(url=ctx.author.avatar_url)
+	embed.set_thumbnail(url=ctx.author.avatar)
 	await ctx.send(f"{ctx.author.mention}", embed=embed)
 
 
@@ -2511,201 +2513,245 @@ async def upgrade(ctx, arg="r"):
 		await ctx.channel.send(f"Votre commande n'a pas étais comprise")
 
 
-# @bot.command(name='item', aliases=["objet","Objet","Item"], help="Cette commande permet de connaître les spécificité de chaque item, pour conaître tout les objets consultable, faite tout simplement !item")
-# @commands.cooldown(1, 2, commands.BucketType.user)
-# async def item(ctx, arg="r", page=1):
-# 	if not await check_if_aventurier(ctx):
-# 		return
+@bot.command(name='item', aliases=["objet","Objet","Item"], help="Cette commande permet de connaître les spécificité de chaque item, pour conaître tout les objets consultable, faite tout simplement !item")
+@commands.cooldown(1, 2, commands.BucketType.user)
+async def item(ctx, arg="r", page=1):
+	if not await check_if_aventurier(ctx):
+		return
 
-# 	author_id = ctx.author.id
-# 	if arg == "r":
-# 		embed = discord.Embed(
-# 			title="**__Info__**", description="la commande <`!item <item>`> donne des informations sur l'item séléctioné")
-# 		embed.add_field(name="**Hache:**", value="`!item axe`", inline=False)
-# 		embed.add_field(name="**Pioche:**", value="`!item pickaxe`", inline=False)
-# 		await ctx.send(embed=embed)
-# 	elif(arg == "pickaxe" or arg == "pioche"):
-# 		page = 1
-# 		embed = discord.Embed(title="**__Pioche__**")
-# 		message = ""
-# 		for pickaxe in list(pioche.keys())[:4]:
-# 			if str(pickaxe) != "soon":
-# 				pickaxe_name = pickaxe
-# 				price_pickaxe = ""
-# 				for i in pioche[pickaxe][1].split("/"):
-# 					i = i.split(" ")
-# 					price_pickaxe += f" {i[0]} en {i[1]},"
-# 				price_pickaxe = price_pickaxe[:-1]
+	author_id = ctx.author.id
+	if arg == "r":
+		embed = discord.Embed(
+			title="**__Info__**", description="la commande <`!item <item>`> donne des informations sur l'item séléctioné")
+		embed.add_field(name="**Hache:**", value="`!item axe`", inline=False)
+		embed.add_field(name="**Pioche:**", value="`!item pickaxe`", inline=False)
+		await ctx.send(embed=embed)
+	elif(arg == "pickaxe" or arg == "pioche"):
+		page = 1
+		embed = discord.Embed(title="**__Pioche__**")
+		message = ""
+		for pickaxe in list(pioche.keys())[:4]:
+			if str(pickaxe) != "soon":
+				pickaxe_name = pickaxe
+				price_pickaxe = ""
+				for i in pioche[pickaxe][1].split("/"):
+					i = i.split(" ")
+					price_pickaxe += f" {i[0]} en {i[1]},"
+				price_pickaxe = price_pickaxe[:-1]
 
-# 				message += f"**{pickaxe_name}**: `Niveau : {pioche[pickaxe][0]}`, donne entre `{pioche[pickaxe][2][0]} et {pioche[pickaxe][2][1]} de pierre` "
-# 				if pioche[pickaxe][3][0] != 0:
-# 					message += f"et a __{pioche[pickaxe][3][0]*100}"+'%' + \
-# 						f" de **chance**__ de donné `{pioche[pickaxe][3][1]} de fer` "
-# 				if pioche[pickaxe][4][0] != 0:
-# 					message += f"et a __{pioche[pickaxe][4][0]*100}"+'%' + \
-# 						f" de **chance**__ de donné `{pioche[pickaxe][4][1]} d'or` "
-# 				if pioche[pickaxe][5][0] != 0:
-# 					message += f"et a __{pioche[pickaxe][5][0]*100}"+'%' + \
-# 						f" de **chance**__ de donné `{pioche[pickaxe][5][1]} de diamant` "
-# 				if pioche[pickaxe][6][0] != 0:
-# 					message += f"et a __{pioche[pickaxe][6][0]*100}"+'%' + \
-# 						f" de **chance**__ de donné `{pioche[pickaxe][6][1]} géode`"
+				message += f"**{pickaxe_name}**: `Niveau : {pioche[pickaxe][0]}`, donne entre `{pioche[pickaxe][2][0]} et {pioche[pickaxe][2][1]} de pierre` "
+				if pioche[pickaxe][3][0] != 0:
+					message += f"et a __{pioche[pickaxe][3][0]*100}"+'%' + \
+						f" de **chance**__ de donné `{pioche[pickaxe][3][1]} de fer` "
+				if pioche[pickaxe][4][0] != 0:
+					message += f"et a __{pioche[pickaxe][4][0]*100}"+'%' + \
+						f" de **chance**__ de donné `{pioche[pickaxe][4][1]} d'or` "
+				if pioche[pickaxe][5][0] != 0:
+					message += f"et a __{pioche[pickaxe][5][0]*100}"+'%' + \
+						f" de **chance**__ de donné `{pioche[pickaxe][5][1]} de diamant` "
+				if pioche[pickaxe][6][0] != 0:
+					message += f"et a __{pioche[pickaxe][6][0]*100}"+'%' + \
+						f" de **chance**__ de donné `{pioche[pickaxe][6][1]} géode`"
 
-# 				message += f"\n__Prix :__{price_pickaxe} \n\n"
+				message += f"\n__Prix :__{price_pickaxe} \n\n"
 
-# 		embed.add_field(name="Valeur :", value=message, inline=True)
-# 		embed.set_footer(text="page 1/2")
-# 		m = await ctx.channel.send(f"{ctx.author.mention}", embed=embed, components=[[Button(style=1, label="Previous Page", disabled=True), Button(style=1, label="Next Page")]])
-# 		while True:
-# 			def check(res):
-# 				return ctx.author == res.user and res.channel == ctx.channel
-# 			res = await bot.wait_for("button_click", check=check)
-# 			action = res.component.label
+		embed.add_field(name="Valeur :", value=message, inline=True)
+		embed.set_footer(text="page 1/2")
 
-# 			if page == 1:
-# 				if action == "Next Page":
-# 					embed = discord.Embed(title="**__Pioche__**")
-# 					message = ""
-# 					for pickaxe in list(pioche.keys())[4:]:
-# 						if str(pickaxe) != "soon":
-# 							pickaxe_name = pickaxe
-# 							price_pickaxe = ""
-# 							for i in pioche[pickaxe][1].split("/"):
-# 								i = i.split(" ")
-# 								price_pickaxe += f" {i[0]} en {i[1]},"
-# 							price_pickaxe = price_pickaxe[:-1]
+		async def previousPage(interaction):
+			embed = discord.Embed(title="**__Pioche__**",
+			                      description="`!item pickaxe <optionel:page>`")
+			message = ""
+			for pickaxe in list(pioche.keys())[:4]:
+				if str(pickaxe) != "soon":
+					pickaxe_name = pickaxe
+					price_pickaxe = ""
+					for i in pioche[pickaxe][1].split("/"):
+						i = i.split(" ")
+						price_pickaxe += f" {i[0]} en {i[1]},"
+					price_pickaxe = price_pickaxe[:-1]
 
-# 							message += f"**{pickaxe_name}**: `Niveau : {pioche[pickaxe][0]}`, donne entre `{pioche[pickaxe][2][0]} et {pioche[pickaxe][2][1]} de pierre` "
-# 							if pioche[pickaxe][3][0] != 0:
-# 								message += f"et a __{pioche[pickaxe][3][0]*100}"+'%' + \
-# 									f" de **chance**__ de donné `{pioche[pickaxe][3][1]} de fer` "
-# 							if pioche[pickaxe][4][0] != 0:
-# 								message += f"et a __{pioche[pickaxe][4][0]*100}"+'%' + \
-# 									f" de **chance**__ de donné `{pioche[pickaxe][4][1]} d'or` "
-# 							if pioche[pickaxe][5][0] != 0:
-# 								message += f"et a __{pioche[pickaxe][5][0]*100}"+'%' + \
-# 									f" de **chance**__ de donné `{pioche[pickaxe][5][1]} de diamant` "
-# 							if pioche[pickaxe][6][0] != 0:
-# 								message += f"et a __{pioche[pickaxe][6][0]*100}"+'%' + \
-# 									f" de **chance**__ de donné `{pioche[pickaxe][6][1]} géode`"
+					message += f"**{pickaxe_name}**: `Niveau : {pioche[pickaxe][0]}`, donne entre `{pioche[pickaxe][2][0]} et {pioche[pickaxe][2][1]} de pierre` "
+					if pioche[pickaxe][3][0] != 0:
+						message += f"et a __{pioche[pickaxe][3][0]*100}"+'%' + \
+							f" de **chance**__ de donné `{pioche[pickaxe][3][1]} de fer` "
+					if pioche[pickaxe][4][0] != 0:
+						message += f"et a __{pioche[pickaxe][4][0]*100}"+'%' + \
+							f" de **chance**__ de donné `{pioche[pickaxe][4][1]} d'or` "
+					if pioche[pickaxe][5][0] != 0:
+						message += f"et a __{pioche[pickaxe][5][0]*100}"+'%' + \
+							f" de **chance**__ de donné `{pioche[pickaxe][5][1]} de diamant` "
+					if pioche[pickaxe][6][0] != 0:
+						message += f"et a __{pioche[pickaxe][6][0]*100}"+'%' + \
+							f" de **chance**__ de donné `{pioche[pickaxe][6][1]} géode`"
 
-# 							message += f"\n__Prix :__{price_pickaxe} \n\n"
+					message += f"\n__Prix :__{price_pickaxe} \n\n"
 
-# 					embed.add_field(name="Valeur :", value=message, inline=True)
-# 					embed.set_footer(text="page 2/2")
-# 					page = 2
-# 					await m.edit(f"{ctx.author.mention}", embed=embed, components=[[Button(style=1, label="Previous Page"), Button(style=1, label="Next Page", disabled=True)]])
-# 			if page == 2:
-# 				if action == "Previous Page":
-# 					embed = discord.Embed(title="**__Pioche__**",
-# 					                      description="`!item pickaxe <optionel:page>`")
-# 					message = ""
-# 					for pickaxe in list(pioche.keys())[:4]:
-# 						if str(pickaxe) != "soon":
-# 							pickaxe_name = pickaxe
-# 							price_pickaxe = ""
-# 							for i in pioche[pickaxe][1].split("/"):
-# 								i = i.split(" ")
-# 								price_pickaxe += f" {i[0]} en {i[1]},"
-# 							price_pickaxe = price_pickaxe[:-1]
+			embed.add_field(name="Valeur :", value=message, inline=True)
+			embed.set_footer(text="page 1/2")
+			page = 1
+			bt1 = discord.ui.Button(style=discord.ButtonStyle.blurple, label="Previous Page", disabled=True)
+			bt1.callback = previousPage
 
-# 							message += f"**{pickaxe_name}**: `Niveau : {pioche[pickaxe][0]}`, donne entre `{pioche[pickaxe][2][0]} et {pioche[pickaxe][2][1]} de pierre` "
-# 							if pioche[pickaxe][3][0] != 0:
-# 								message += f"et a __{pioche[pickaxe][3][0]*100}"+'%' + \
-# 									f" de **chance**__ de donné `{pioche[pickaxe][3][1]} de fer` "
-# 							if pioche[pickaxe][4][0] != 0:
-# 								message += f"et a __{pioche[pickaxe][4][0]*100}"+'%' + \
-# 									f" de **chance**__ de donné `{pioche[pickaxe][4][1]} d'or` "
-# 							if pioche[pickaxe][5][0] != 0:
-# 								message += f"et a __{pioche[pickaxe][5][0]*100}"+'%' + \
-# 									f" de **chance**__ de donné `{pioche[pickaxe][5][1]} de diamant` "
-# 							if pioche[pickaxe][6][0] != 0:
-# 								message += f"et a __{pioche[pickaxe][6][0]*100}"+'%' + \
-# 									f" de **chance**__ de donné `{pioche[pickaxe][6][1]} géode`"
+			bt2 = discord.ui.Button(style=discord.ButtonStyle.blurple, label="Next Page")
+			bt2.callback = nextPage
 
-# 							message += f"\n__Prix :__{price_pickaxe} \n\n"
+			v = discord.ui.View()
+			v.add_item(bt1)
+			v.add_item(bt2)
+			
+			await interaction.message.edit(content=f"{ctx.author.mention}", embed=embed, view=v)
+			await interaction.response.defer()
+			
+		
 
-# 					embed.add_field(name="Valeur :", value=message, inline=True)
-# 					embed.set_footer(text="page 1/2")
-# 					page = 1
-# 					await m.edit(f"{ctx.author.mention}", embed=embed, components=[[Button(style=1, label="Previous Page", disabled=True), Button(style=1, label="Next Page")]])
+		async def nextPage(interaction):
+			embed = discord.Embed(title="**__Pioche__**")
+			message = ""
+			for pickaxe in list(pioche.keys())[4:]:
+				if str(pickaxe) != "soon":
+					pickaxe_name = pickaxe
+					price_pickaxe = ""
+					for i in pioche[pickaxe][1].split("/"):
+						i = i.split(" ")
+						price_pickaxe += f" {i[0]} en {i[1]},"
+					price_pickaxe = price_pickaxe[:-1]
 
-# 	'''
-# 	elif (arg == "pickaxe" or arg == "pioche") and page == 2:
-# 		embed = discord.Embed(title="**__Pioche__**",description="`!item pickaxe <optionel:page>`")
-# 		message = ""
-# 		for pickaxe in list(pioche.keys())[4:]:
-# 			if str(pickaxe) != "soon":
-# 				pickaxe_name = pickaxe
-# 				price_pickaxe = ""
-# 				for i in pioche[pickaxe][1].split("/"):
-# 					i = i.split(" ")
-# 					price_pickaxe += f" {i[0]} en {i[1]},"
-# 				price_pickaxe=price_pickaxe[:-1]
+					message += f"**{pickaxe_name}**: `Niveau : {pioche[pickaxe][0]}`, donne entre `{pioche[pickaxe][2][0]} et {pioche[pickaxe][2][1]} de pierre` "
+					if pioche[pickaxe][3][0] != 0:
+						message += f"et a __{pioche[pickaxe][3][0]*100}"+'%' + \
+							f" de **chance**__ de donné `{pioche[pickaxe][3][1]} de fer` "
+					if pioche[pickaxe][4][0] != 0:
+						message += f"et a __{pioche[pickaxe][4][0]*100}"+'%' + \
+							f" de **chance**__ de donné `{pioche[pickaxe][4][1]} d'or` "
+					if pioche[pickaxe][5][0] != 0:
+						message += f"et a __{pioche[pickaxe][5][0]*100}"+'%' + \
+							f" de **chance**__ de donné `{pioche[pickaxe][5][1]} de diamant` "
+					if pioche[pickaxe][6][0] != 0:
+						message += f"et a __{pioche[pickaxe][6][0]*100}"+'%' + \
+							f" de **chance**__ de donné `{pioche[pickaxe][6][1]} géode`"
 
-# 				message += f"**{pickaxe_name}**: `Niveau : {pioche[pickaxe][0]}`, donne entre `{pioche[pickaxe][2][0]} et {pioche[pickaxe][2][1]} de pierre` "
-# 				if pioche[pickaxe][3][0] != 0:
-# 					message += f"et a __{pioche[pickaxe][3][0]*100}"+'%'+f" de **chance**__ de donné `{pioche[pickaxe][3][1]} de fer` "
-# 				if pioche[pickaxe][4][0] != 0:
-# 					message += f"et a __{pioche[pickaxe][4][0]*100}"+'%'+f" de **chance**__ de donné `{pioche[pickaxe][4][1]} d'or` "
-# 				if pioche[pickaxe][5][0] != 0:
-# 					message += f"et a __{pioche[pickaxe][5][0]*100}"+'%'+f" de **chance**__ de donné `{pioche[pickaxe][5][1]} de diamant` "
-# 				if pioche[pickaxe][6][0] != 0:
-# 					message += f"et a __{pioche[pickaxe][6][0]*100}"+'%'+f" de **chance**__ de donné `{pioche[pickaxe][6][1]} géode`"
+					message += f"\n__Prix :__{price_pickaxe} \n\n"
+
+			embed.add_field(name="Valeur :", value=message, inline=True)
+			embed.set_footer(text="page 2/2")
+			page = 2
+
+			# print(interaction.message.components)
+			bt1 = discord.ui.Button(style=discord.ButtonStyle.blurple, label="Previous Page")
+			bt1.callback = previousPage
+
+			bt2 = discord.ui.Button(style=discord.ButtonStyle.blurple, label="Next Page", disabled=True)
+			bt2.callback = nextPage
+
+			v = discord.ui.View()
+			v.add_item(bt1)
+			v.add_item(bt2)
+			await interaction.message.edit(content=f"{ctx.author.mention}", embed=embed, view=v)
+			await interaction.response.defer()
+
+		bt1 = discord.ui.Button(style=discord.ButtonStyle.blurple, label="Previous Page", disabled=True)
+		bt1.callback = previousPage
+
+		bt2 = discord.ui.Button(style=discord.ButtonStyle.blurple, label="Next Page")
+		bt2.callback = nextPage
+
+		v = discord.ui.View()
+		v.add_item(bt1)
+		v.add_item(bt2)
+		m = await ctx.channel.send(f"{ctx.author.mention}", embed=embed, view=v)
+
+		
+
+		# while True:
+		# 	def check(res):
+		# 		return ctx.author == res.user and res.channel == ctx.channel
+		# 	interaction, button = await bot.wait_for("button_click", check=check)
+			
+		# 	action = button.component.label
+		# 	await interaction.defer()
+			
+			
 
 
-# 				message += f"\n__Prix :__{price_pickaxe} \n\n"
+					
+
+	'''
+	elif (arg == "pickaxe" or arg == "pioche") and page == 2:
+		embed = discord.Embed(title="**__Pioche__**",description="`!item pickaxe <optionel:page>`")
+		message = ""
+		for pickaxe in list(pioche.keys())[4:]:
+			if str(pickaxe) != "soon":
+				pickaxe_name = pickaxe
+				price_pickaxe = ""
+				for i in pioche[pickaxe][1].split("/"):
+					i = i.split(" ")
+					price_pickaxe += f" {i[0]} en {i[1]},"
+				price_pickaxe=price_pickaxe[:-1]
+
+				message += f"**{pickaxe_name}**: `Niveau : {pioche[pickaxe][0]}`, donne entre `{pioche[pickaxe][2][0]} et {pioche[pickaxe][2][1]} de pierre` "
+				if pioche[pickaxe][3][0] != 0:
+					message += f"et a __{pioche[pickaxe][3][0]*100}"+'%'+f" de **chance**__ de donné `{pioche[pickaxe][3][1]} de fer` "
+				if pioche[pickaxe][4][0] != 0:
+					message += f"et a __{pioche[pickaxe][4][0]*100}"+'%'+f" de **chance**__ de donné `{pioche[pickaxe][4][1]} d'or` "
+				if pioche[pickaxe][5][0] != 0:
+					message += f"et a __{pioche[pickaxe][5][0]*100}"+'%'+f" de **chance**__ de donné `{pioche[pickaxe][5][1]} de diamant` "
+				if pioche[pickaxe][6][0] != 0:
+					message += f"et a __{pioche[pickaxe][6][0]*100}"+'%'+f" de **chance**__ de donné `{pioche[pickaxe][6][1]} géode`"
 
 
-# 		embed.add_field(name="Valeur :", value = message, inline = True)
-# 		embed.set_footer(text="page 2/2")
-# 		await ctx.channel.send(f"{ctx.author.mention}",embed = embed)
-# 	'''
-# 	if arg == "axe":
-# 		embed = discord.Embed(
-# 			title="**__Hache__**", description="*Vous avez **une chance sur 200** de tomber sur un arbre magique, au quel cas celui-ci vous donnera une poudre magique*")
-# 		message = ""
-# 		for axe in hache.keys():
-# 			if axe == "soon":
-# 				pass
-# 			else:
-# 				axe_name = axe
-# 				price_axe = ""
-# 				for i in hache[axe][1].split("/"):
-# 					i = i.split(" ")
-# 					price_axe += f" {i[0]} en {i[1]},"
-# 				price_axe = price_axe[:-1]
+				message += f"\n__Prix :__{price_pickaxe} \n\n"
 
-# 				message += f"**{axe_name}**: `Niveau : {hache[axe][0]}`, donne entre `{hache[axe][2][0]} et {hache[axe][2][1]} du bois` "
-# 				if hache[axe][3][0] != 0:
-# 					message += f"et a __{hache[axe][3][0]*100}"+'%' + \
-# 						f" de **chance**__ de donné `{hache[axe][3][1]} de sève` "
-# 				message += f"\n__Prix :__{price_axe} \n\n"
 
-# 		embed.add_field(name="Valeur :", value=message, inline=True)
-# 		embed.set_footer(text="page 1/1")
-# 		await ctx.channel.send(f"{ctx.author.mention}", embed=embed)
-# 	if arg == "sword" or arg == "épée":
-# 		embed = discord.Embed(title="**__Epée__**")
-# 		message = ""
-# 		for sword in épée.keys():
-# 			if sword == "soon":
-# 				pass
-# 			else:
-# 				sword_name = sword
-# 				price_sword = ""
-# 				for i in épée[sword][1].split("/"):
-# 					i = i.split(" ")
-# 					price_sword += f" {i[0]} en {i[1]},"
-# 				price_sword = price_sword[:-1]
+		embed.add_field(name="Valeur :", value = message, inline = True)
+		embed.set_footer(text="page 2/2")
+		await ctx.channel.send(f"{ctx.author.mention}",embed = embed)
+	'''
+	if arg == "axe":
+		embed = discord.Embed(
+			title="**__Hache__**", description="*Vous avez **une chance sur 200** de tomber sur un arbre magique, au quel cas celui-ci vous donnera une poudre magique*")
+		message = ""
+		for axe in hache.keys():
+			if axe == "soon":
+				pass
+			else:
+				axe_name = axe
+				price_axe = ""
+				for i in hache[axe][1].split("/"):
+					i = i.split(" ")
+					price_axe += f" {i[0]} en {i[1]},"
+				price_axe = price_axe[:-1]
 
-# 				message += f"**{sword_name}**: `Niveau : {épée[sword][0]}`, à __{épée[sword][2]*100} % de chance__ de tué un **petit monstre** et a __{épée[sword][3]*100}% de chance__ de tué un **gros montre**"
+				message += f"**{axe_name}**: `Niveau : {hache[axe][0]}`, donne entre `{hache[axe][2][0]} et {hache[axe][2][1]} du bois` "
+				if hache[axe][3][0] != 0:
+					message += f"et a __{hache[axe][3][0]*100}"+'%' + \
+						f" de **chance**__ de donné `{hache[axe][3][1]} de sève` "
+				message += f"\n__Prix :__{price_axe} \n\n"
 
-# 				message += f"\n__Prix :__{price_sword} \n\n"
+		embed.add_field(name="Valeur :", value=message, inline=True)
+		embed.set_footer(text="page 1/1")
+		await ctx.channel.send(f"{ctx.author.mention}", embed=embed)
+	if arg == "sword" or arg == "épée":
+		embed = discord.Embed(title="**__Epée__**")
+		message = ""
+		for sword in épée.keys():
+			if sword == "soon":
+				pass
+			else:
+				sword_name = sword
+				price_sword = ""
+				for i in épée[sword][1].split("/"):
+					i = i.split(" ")
+					price_sword += f" {i[0]} en {i[1]},"
+				price_sword = price_sword[:-1]
 
-# 		embed.add_field(name="Valeur :", value=message, inline=True)
-# 		embed.set_footer(text="page 1/1")
-# 		await ctx.channel.send(f"{ctx.author.mention}", embed=embed)
+				message += f"**{sword_name}**: `Niveau : {épée[sword][0]}`, à __{épée[sword][2]*100} % de chance__ de tué un **petit monstre** et a __{épée[sword][3]*100}% de chance__ de tué un **gros montre**"
+
+				message += f"\n__Prix :__{price_sword} \n\n"
+
+		embed.add_field(name="Valeur :", value=message, inline=True)
+		embed.set_footer(text="page 1/1")
+		await ctx.channel.send(f"{ctx.author.mention}", embed=embed)
 
 
 @bot.command(name='potion', aliases=["Potion"], help="Cette commande permet de voir et d'utiliser les potions")
@@ -3214,7 +3260,7 @@ async def stat(ctx):
 
 	embed.add_field(name="**Matériaux posé à la `!bank`:**",
 	                value=f"{nb_bank[0]} bois\n{nb_bank[1]} pierre\n{nb_bank[2]} fer\n{nb_bank[3]} or\n{nb_bank[4]} diamant", inline=False)
-	embed.set_thumbnail(url=ctx.author.avatar_url)
+	embed.set_thumbnail(url=ctx.author.avatar)
 
 	await ctx.send(f"{ctx.author.mention}", embed=embed)
 
@@ -3234,7 +3280,7 @@ async def command(ctx, arg="r"):
 	elif arg == "maison" or arg == "faction" or arg == "home" or arg == "house":
 		embed = discord.Embed(title=f"**Commande :**", description="**__Commande Maison/Faction__**\n`!house`: Affiche votre maison\n`!furnace <nb> <materiaux>`: pour (1 charbon contre 100 bois\1 sceau de lave contre 10k pierre)\n`!faction`: permet de rejoindre une faction\n`!bank <nb> <matériau>` : permet de mettre *nb* *matériau* dans la banque votre faction avec <matériau>=b/p/f/o/d")
 
-	#embed.set_thumbnail(url=ctx.author.avatar_url)
+	#embed.set_thumbnail(url=ctx.author.avatar)
 
 	await ctx.send(f"{ctx.author.mention}", embed=embed)
 
@@ -3282,7 +3328,7 @@ async def house(ctx, arg="r", arg2="nafegtr4egerme"):
 			message = "Vous n'avez aucun equipement, vous pouvez aller en acheter au `!buy`"
 
 		embed.add_field(name="Equipement", value=message)
-		embed.set_thumbnail(url=ctx.author.avatar_url)
+		embed.set_thumbnail(url=ctx.author.avatar)
 		await ctx.send(f"{ctx.author.mention}", embed=embed)
 	elif arg == "name" or arg == "nick" or arg == "nickname" or arg == "nom" or arg == "surnom":
 		if arg2 != "nafegtr4egerme":
@@ -3677,7 +3723,7 @@ async def furnace(ctx, nb=1, matériaux="r"):
 		embed = discord.Embed(
 			title="**Four**", description="`!furnace <nb> <matériaux>`\n*__Exemple__ : `!furnace 10 coal` va vous donné 10 charbon contre 1k de bois*")
 		embed.add_field(name=f"Objets", value="100 bois --> 1 charbon\n10k pierre --> 1 sceau de lave\n400 fer,50 or et 2 sceau de lave --> 1 électrum\n150 fer,150 charbon et 1 sceau de lave --> 10 acier")
-		embed.set_thumbnail(url=ctx.author.avatar_url)
+		embed.set_thumbnail(url=ctx.author.avatar)
 		await ctx.send(f"{ctx.author.mention}", embed=embed)
 
 	elif matériaux in ["coal", "charbon"]:
@@ -3761,7 +3807,7 @@ async def inlaid(ctx, matériaux="r"):
 		                      description="`!inlaid <pur_matériaux>`\n*__Exemple__ : `!inlaid pur_emeraude` va vous incrusté la pierre dans votre pioche pour doublé ces stats*")
 		embed.add_field(name=f"Vos pierre précieuse pur",
 		                value=f"**Emeraude pur**: {author_pure_emerald}, *si incrusté : x2 sur toute récupération de minerais*\n**Saphire pur**: {author_pure_sapphire}, si incrusté : *x3 sur toute récupération de minerais*\n**Rubis pur**: {author_pure_ruby}, *si incrusté : x5 sur toute récupération de minerais*")
-		embed.set_thumbnail(url=ctx.author.avatar_url)
+		embed.set_thumbnail(url=ctx.author.avatar)
 		await ctx.send(f"{ctx.author.mention}", embed=embed)
 
 	elif matériaux == "emeraude_pur" or matériaux == "pure_emerald" or matériaux == "emeraude_pure" or matériaux == "pur_emerald":
@@ -3927,125 +3973,125 @@ async def inlaid(ctx, matériaux="r"):
 
 
 # 4 fois !mine
-@bot.command(name='hour', aliases=["h", "heure","H", "Heure","Hour"], enabled=False)
-@commands.cooldown(1, 3600, commands.BucketType.user)
-async def hour(ctx):
-	if not await check_if_aventurier(ctx):
-		return
-	author_id = ctx.author.id
-	result = collection.find({"_id": author_id})
-	for x in result:
-		author_hav_hache = x["hav_hache"]
-		author_pioche = x["hav_pioche"]
-		nb_invitation = x["invite"]
-		author_house = x["house"][0]
+# @bot.command(name='hour', aliases=["h", "heure","H", "Heure","Hour"], enabled=False)
+# @commands.cooldown(1, 3600, commands.BucketType.user)
+# async def hour(ctx):
+# 	if not await check_if_aventurier(ctx):
+# 		return
+# 	author_id = ctx.author.id
+# 	result = collection.find({"_id": author_id})
+# 	for x in result:
+# 		author_hav_hache = x["hav_hache"]
+# 		author_pioche = x["hav_pioche"]
+# 		nb_invitation = x["invite"]
+# 		author_house = x["house"][0]
 
-	if nb_invitation < 1:
-		return await ctx.channel.send(f"Pour utilisé la commande, <`!hour`>, vous devez inviter une personne sur le serveur, pour connaître le nombre de personne que vous avez inviter faite <!invitation>, {ctx.author.mention}")
+# 	if nb_invitation < 1:
+# 		return await ctx.channel.send(f"Pour utilisé la commande, <`!hour`>, vous devez inviter une personne sur le serveur, pour connaître le nombre de personne que vous avez inviter faite <!invitation>, {ctx.author.mention}")
 
-	if not author_hav_hache:  # vérifie si le joueur possède une pioche
-		return await ctx.channel.send(f"Vous n'avez pas encore de hache,, pour acheté une pioche faite `!buy axe`, {ctx.author.mention}")
+# 	if not author_hav_hache:  # vérifie si le joueur possède une pioche
+# 		return await ctx.channel.send(f"Vous n'avez pas encore de hache,, pour acheté une pioche faite `!buy axe`, {ctx.author.mention}")
 
-	if not author_pioche:  # vérifie si le joueur possède une pioche
-		await ctx.channel.send(f"Vous n'avez pas encore de pioche, donc le `!mine` n'a pas étais ajouté, pour acheté une pioche faite `!buy pickaxe`, {ctx.author.mention}")
+# 	if not author_pioche:  # vérifie si le joueur possède une pioche
+# 		await ctx.channel.send(f"Vous n'avez pas encore de pioche, donc le `!mine` n'a pas étais ajouté, pour acheté une pioche faite `!buy pickaxe`, {ctx.author.mention}")
 
-	result = collection.find({"_id": author_id})
-	for x in result:
-		#"Pioche":[niveau,prix,(pierre_min,pierre_max),%fer]
-		author_wood = hache[x["hache"]][2]
-		author_pierres = pioche[x["pioche"]][2]
-		author_fer = pioche[x["pioche"]][3]
-		author_gold = pioche[x["pioche"]][4]
-		author_diamond = pioche[x["pioche"]][5]
-		author_géode = pioche[x["pioche"]][6]
+# 	result = collection.find({"_id": author_id})
+# 	for x in result:
+# 		#"Pioche":[niveau,prix,(pierre_min,pierre_max),%fer]
+# 		author_wood = hache[x["hache"]][2]
+# 		author_pierres = pioche[x["pioche"]][2]
+# 		author_fer = pioche[x["pioche"]][3]
+# 		author_gold = pioche[x["pioche"]][4]
+# 		author_diamond = pioche[x["pioche"]][5]
+# 		author_géode = pioche[x["pioche"]][6]
 
-	if author_house != "pas_de_faction":
-		pourcentage_minerais_faction = 0
-		minerais_en_plus_faction = [0, 0, 0]
-	else:
-		result_faction = collection_faction.find({"name": author_house[:-2]})
-		for y in result_faction:
-			pourcentage_minerais_faction = y["+% minerais"]/100
-			minerais_en_plus_faction = y["+minerais"]
+# 	if author_house != "pas_de_faction":
+# 		pourcentage_minerais_faction = 0
+# 		minerais_en_plus_faction = [0, 0, 0]
+# 	else:
+# 		result_faction = collection_faction.find({"name": author_house[:-2]})
+# 		for y in result_faction:
+# 			pourcentage_minerais_faction = y["+% minerais"]/100
+# 			minerais_en_plus_faction = y["+minerais"]
 
-	wood = 0
-	stone = 0
-	hav_iron = False
-	iron = 0
-	hav_gold = False
-	gold = 0
-	hav_diamond = False
-	diamond = 0
-	hav_géode = False
-	géode = 0
-	#!wood
-	nb_range_wood = int((60//15)//(cooldown_mine/120))
-	for _ in range(nb_range_wood):
-		wood += randint(author_wood[0], author_wood[1])
-	#!mine
-	nb_range_mine = int((60//15)//(cooldown_mine/60))
+# 	wood = 0
+# 	stone = 0
+# 	hav_iron = False
+# 	iron = 0
+# 	hav_gold = False
+# 	gold = 0
+# 	hav_diamond = False
+# 	diamond = 0
+# 	hav_géode = False
+# 	géode = 0
+# 	#!wood
+# 	nb_range_wood = int((60//15)//(cooldown_mine/120))
+# 	for _ in range(nb_range_wood):
+# 		wood += randint(author_wood[0], author_wood[1])
+# 	#!mine
+# 	nb_range_mine = int((60//15)//(cooldown_mine/60))
 
-	all_pourcentage_fer = author_fer[0] + \
-		author_fer[0]*pourcentage_minerais_faction
-	all_pourcentage_or = author_gold[0] + \
-		author_gold[0]*pourcentage_minerais_faction
-	all_pourcentage_diamant = author_diamond[0] + \
-		author_diamond[0]*pourcentage_minerais_faction
-	all_pourcentage_géode = author_géode[0] + \
-		author_géode[0]*pourcentage_minerais_faction
+# 	all_pourcentage_fer = author_fer[0] + \
+# 		author_fer[0]*pourcentage_minerais_faction
+# 	all_pourcentage_or = author_gold[0] + \
+# 		author_gold[0]*pourcentage_minerais_faction
+# 	all_pourcentage_diamant = author_diamond[0] + \
+# 		author_diamond[0]*pourcentage_minerais_faction
+# 	all_pourcentage_géode = author_géode[0] + \
+# 		author_géode[0]*pourcentage_minerais_faction
 
-	for _ in range(nb_range_mine):
-		stone += randint(author_pierres[0], author_pierres[1])
+# 	for _ in range(nb_range_mine):
+# 		stone += randint(author_pierres[0], author_pierres[1])
 
-		#Calcule du fer
-		rand = random()
-		if all_pourcentage_fer >= rand:
-			iron += author_fer[1] + minerais_en_plus_faction[0]
-			hav_iron = True
-		#Calcule l'or
-		rand = random()
-		if all_pourcentage_or >= rand:
-			gold += author_gold[1] + minerais_en_plus_faction[1]
-			hav_gold = True
+# 		#Calcule du fer
+# 		rand = random()
+# 		if all_pourcentage_fer >= rand:
+# 			iron += author_fer[1] + minerais_en_plus_faction[0]
+# 			hav_iron = True
+# 		#Calcule l'or
+# 		rand = random()
+# 		if all_pourcentage_or >= rand:
+# 			gold += author_gold[1] + minerais_en_plus_faction[1]
+# 			hav_gold = True
 
-		#Calcule du diamant
-		rand = random()
-		if all_pourcentage_diamant >= rand:
-			diamond += author_diamond[1] + minerais_en_plus_faction[2]
-			hav_diamond = True
+# 		#Calcule du diamant
+# 		rand = random()
+# 		if all_pourcentage_diamant >= rand:
+# 			diamond += author_diamond[1] + minerais_en_plus_faction[2]
+# 			hav_diamond = True
 
-		#Calcule des géodes
-		rand = random()
-		if all_pourcentage_géode >= rand:
-			géode += author_géode[1]
-			hav_géode = True
+# 		#Calcule des géodes
+# 		rand = random()
+# 		if all_pourcentage_géode >= rand:
+# 			géode += author_géode[1]
+# 			hav_géode = True
 
-	collection.update_one({"_id": author_id}, {"$inc": {"!wood": nb_range_wood}})
-	collection.update_one({"_id": author_id}, {"$inc": {"!mine": nb_range_mine}})
+# 	collection.update_one({"_id": author_id}, {"$inc": {"!wood": nb_range_wood}})
+# 	collection.update_one({"_id": author_id}, {"$inc": {"!mine": nb_range_mine}})
 
-	message = ""
-	# bois
-	collection.update_one({"_id": author_id}, {"$inc": {"wood": wood}})
-	message += f"Vous venez de récolter {wood} bois"
+# 	message = ""
+# 	# bois
+# 	collection.update_one({"_id": author_id}, {"$inc": {"wood": wood}})
+# 	message += f"Vous venez de récolter {wood} bois"
 
-	# pierre
-	collection.update_one({"_id": author_id}, {"$inc": {"stone": stone}})
-	message += f", {stone} pierre"
+# 	# pierre
+# 	collection.update_one({"_id": author_id}, {"$inc": {"stone": stone}})
+# 	message += f", {stone} pierre"
 
-	if hav_iron:  # fer
-		collection.update_one({"_id": author_id}, {"$inc": {"iron": iron}})
-		message += f", {iron} fer"
+# 	if hav_iron:  # fer
+# 		collection.update_one({"_id": author_id}, {"$inc": {"iron": iron}})
+# 		message += f", {iron} fer"
 
-	if hav_gold:  # or
-		collection.update_one({"_id": author_id}, {"$inc": {"gold": gold}})
-		message += f", {gold} or"
-	if hav_diamond:  # dimant
-		collection.update_one({"_id": author_id}, {"$inc": {"diamond": diamond}})
-		message += f", {diamond} diamant"
-	if hav_géode:  # géode
-		collection.update_one({"_id": author_id}, {"$inc": {"géode": géode}})
-		message += f", {géode} géode"
-	await ctx.channel.send(f"{message}, {ctx.author.mention}")
+# 	if hav_gold:  # or
+# 		collection.update_one({"_id": author_id}, {"$inc": {"gold": gold}})
+# 		message += f", {gold} or"
+# 	if hav_diamond:  # dimant
+# 		collection.update_one({"_id": author_id}, {"$inc": {"diamond": diamond}})
+# 		message += f", {diamond} diamant"
+# 	if hav_géode:  # géode
+# 		collection.update_one({"_id": author_id}, {"$inc": {"géode": géode}})
+# 		message += f", {géode} géode"
+# 	await ctx.channel.send(f"{message}, {ctx.author.mention}")
 
 
 # 2 fois !mine
@@ -4891,123 +4937,123 @@ async def claim(ctx):
 		js = 'spam'
 
 
-@bot.command(name='day', aliases=["jour", "j","Jour", "J","Day"], enabled=False)  # 60 fois !mine
-@commands.cooldown(1, 3600*24, commands.BucketType.user)
-async def day(ctx):
-	if not await check_if_aventurier(ctx):
-		return
-	author_id = ctx.author.id
-	result = collection.find({"_id": author_id})
-	for x in result:
-		author_hav_hache = x["hav_hache"]
-		author_pioche = x["hav_pioche"]
-		nb_invitation = x["invite"]
-		author_house = x["house"][0]
+# @bot.command(name='day', aliases=["jour", "j","Jour", "J","Day"], enabled=False)  # 60 fois !mine
+# @commands.cooldown(1, 3600*24, commands.BucketType.user)
+# async def day(ctx):
+# 	if not await check_if_aventurier(ctx):
+# 		return
+# 	author_id = ctx.author.id
+# 	result = collection.find({"_id": author_id})
+# 	for x in result:
+# 		author_hav_hache = x["hav_hache"]
+# 		author_pioche = x["hav_pioche"]
+# 		nb_invitation = x["invite"]
+# 		author_house = x["house"][0]
 
-	if nb_invitation < 5:
-		return await ctx.channel.send(f"Pour utilisé la commande, <`!day`>, vous devez inviter une personne sur le serveur, pour connaître le nombre de personne que vous avez inviter faite <!invitation>, {ctx.author.mention}")
+# 	if nb_invitation < 5:
+# 		return await ctx.channel.send(f"Pour utilisé la commande, <`!day`>, vous devez inviter une personne sur le serveur, pour connaître le nombre de personne que vous avez inviter faite <!invitation>, {ctx.author.mention}")
 
-	if not author_hav_hache:  # vérifie si le joueur possède une pioche
-		return await ctx.channel.send(f"Vous n'avez pas encore de hache,, pour acheté une pioche faite `!buy axe`, {ctx.author.mention}")
+# 	if not author_hav_hache:  # vérifie si le joueur possède une pioche
+# 		return await ctx.channel.send(f"Vous n'avez pas encore de hache,, pour acheté une pioche faite `!buy axe`, {ctx.author.mention}")
 
-	if not author_pioche:  # vérifie si le joueur possède une pioche
-		return await ctx.channel.send(f"Vous n'avez pas encore de pioche, donc le `!mine` n'a pas étais ajouté, pour acheté une pioche faite `!buy pickaxe`, {ctx.author.mention}")
+# 	if not author_pioche:  # vérifie si le joueur possède une pioche
+# 		return await ctx.channel.send(f"Vous n'avez pas encore de pioche, donc le `!mine` n'a pas étais ajouté, pour acheté une pioche faite `!buy pickaxe`, {ctx.author.mention}")
 
-	result = collection.find({"_id": author_id})
-	for x in result:
-		#"Pioche":[niveau,prix,(pierre_min,pierre_max),%fer]
-		author_wood = hache[x["hache"]][2]
-		author_pierres = pioche[x["pioche"]][2]
-		author_fer = pioche[x["pioche"]][3]
-		author_gold = pioche[x["pioche"]][4]
-		author_diamond = pioche[x["pioche"]][5]
-		author_géode = pioche[x["pioche"]][6]
-		author_incrusted = x["incrusted"]
+# 	result = collection.find({"_id": author_id})
+# 	for x in result:
+# 		#"Pioche":[niveau,prix,(pierre_min,pierre_max),%fer]
+# 		author_wood = hache[x["hache"]][2]
+# 		author_pierres = pioche[x["pioche"]][2]
+# 		author_fer = pioche[x["pioche"]][3]
+# 		author_gold = pioche[x["pioche"]][4]
+# 		author_diamond = pioche[x["pioche"]][5]
+# 		author_géode = pioche[x["pioche"]][6]
+# 		author_incrusted = x["incrusted"]
 
-	if author_house != "pas_de_faction":
-		pourcentage_minerais_faction = 0
-		minerais_en_plus_faction = [0, 0, 0]
-	else:
-		result_faction = collection_faction.find({"name": author_house[:-2]})
-		for y in result_faction:
-			pourcentage_minerais_faction = y["+% minerais"]/100
-			minerais_en_plus_faction = y["+minerais"]
+# 	if author_house != "pas_de_faction":
+# 		pourcentage_minerais_faction = 0
+# 		minerais_en_plus_faction = [0, 0, 0]
+# 	else:
+# 		result_faction = collection_faction.find({"name": author_house[:-2]})
+# 		for y in result_faction:
+# 			pourcentage_minerais_faction = y["+% minerais"]/100
+# 			minerais_en_plus_faction = y["+minerais"]
 
-	stone = 0
-	hav_iron = False
-	iron = 0
-	hav_gold = False
-	gold = 0
-	hav_diamond = False
-	diamond = 0
-	hav_géode = False
-	géode = 0
-	#wood
-	nb_range_wood = int((60*24//24)//(cooldown_mine/120))
-	wood = sum(
-	    randint(author_wood[0], author_wood[1]) for _ in range(nb_range_wood))
-	#mine
-	nb_range_mine = int((60*24//24)//(cooldown_mine/60))
+# 	stone = 0
+# 	hav_iron = False
+# 	iron = 0
+# 	hav_gold = False
+# 	gold = 0
+# 	hav_diamond = False
+# 	diamond = 0
+# 	hav_géode = False
+# 	géode = 0
+# 	#wood
+# 	nb_range_wood = int((60*24//24)//(cooldown_mine/120))
+# 	wood = sum(
+# 	    randint(author_wood[0], author_wood[1]) for _ in range(nb_range_wood))
+# 	#mine
+# 	nb_range_mine = int((60*24//24)//(cooldown_mine/60))
 
-	all_pourcentage_fer = author_fer[0] + \
-		author_fer[0]*pourcentage_minerais_faction
-	all_pourcentage_or = author_gold[0] + \
-		author_gold[0]*pourcentage_minerais_faction
-	all_pourcentage_diamant = author_diamond[0] + \
-		author_diamond[0]*pourcentage_minerais_faction
-	all_pourcentage_géode = author_géode[0] + \
-		author_géode[0]*pourcentage_minerais_faction
+# 	all_pourcentage_fer = author_fer[0] + \
+# 		author_fer[0]*pourcentage_minerais_faction
+# 	all_pourcentage_or = author_gold[0] + \
+# 		author_gold[0]*pourcentage_minerais_faction
+# 	all_pourcentage_diamant = author_diamond[0] + \
+# 		author_diamond[0]*pourcentage_minerais_faction
+# 	all_pourcentage_géode = author_géode[0] + \
+# 		author_géode[0]*pourcentage_minerais_faction
 
-	for _ in range(nb_range_mine):
-		stone += randint(author_pierres[0], author_pierres[1])
+# 	for _ in range(nb_range_mine):
+# 		stone += randint(author_pierres[0], author_pierres[1])
 
-		#Calcule le fer
-		rand = random()
-		if all_pourcentage_fer >= rand:
-			iron += author_fer[1] + minerais_en_plus_faction[0]
-			hav_iron = True
-		#Calcule l'or
-		rand = random()
-		if all_pourcentage_or >= rand:
-			gold += author_gold[1] + minerais_en_plus_faction[1]
-			hav_gold = True
-		#Calcule du diamant
-		rand = random()
-		if all_pourcentage_diamant >= rand:
-			diamond += author_diamond[1] + minerais_en_plus_faction[2]
-			hav_diamond = True
+# 		#Calcule le fer
+# 		rand = random()
+# 		if all_pourcentage_fer >= rand:
+# 			iron += author_fer[1] + minerais_en_plus_faction[0]
+# 			hav_iron = True
+# 		#Calcule l'or
+# 		rand = random()
+# 		if all_pourcentage_or >= rand:
+# 			gold += author_gold[1] + minerais_en_plus_faction[1]
+# 			hav_gold = True
+# 		#Calcule du diamant
+# 		rand = random()
+# 		if all_pourcentage_diamant >= rand:
+# 			diamond += author_diamond[1] + minerais_en_plus_faction[2]
+# 			hav_diamond = True
 
-		rand = random()
-		if all_pourcentage_géode >= rand:
-			géode += author_géode[1]
-			hav_géode = True
+# 		rand = random()
+# 		if all_pourcentage_géode >= rand:
+# 			géode += author_géode[1]
+# 			hav_géode = True
 
-	collection.update_one({"_id": author_id}, {"$inc": {"!wood": nb_range_wood}})
-	collection.update_one({"_id": author_id}, {"$inc": {"!mine": nb_range_mine}})
+# 	collection.update_one({"_id": author_id}, {"$inc": {"!wood": nb_range_wood}})
+# 	collection.update_one({"_id": author_id}, {"$inc": {"!mine": nb_range_mine}})
 
-	message = ""
-	# bois
-	collection.update_one({"_id": author_id}, {"$inc": {"wood": wood}})
-	message += f"Vous venez de récolter {wood} bois"
+# 	message = ""
+# 	# bois
+# 	collection.update_one({"_id": author_id}, {"$inc": {"wood": wood}})
+# 	message += f"Vous venez de récolter {wood} bois"
 
-	# pierre
-	collection.update_one({"_id": author_id}, {"$inc": {"stone": stone}})
-	message += f", {stone} pierre"
+# 	# pierre
+# 	collection.update_one({"_id": author_id}, {"$inc": {"stone": stone}})
+# 	message += f", {stone} pierre"
 
-	if hav_iron:  # fer
-		collection.update_one({"_id": author_id}, {"$inc": {"iron": iron}})
-		message += f", {iron} fer"
+# 	if hav_iron:  # fer
+# 		collection.update_one({"_id": author_id}, {"$inc": {"iron": iron}})
+# 		message += f", {iron} fer"
 
-	if hav_gold:  # or
-		collection.update_one({"_id": author_id}, {"$inc": {"gold": gold}})
-		message += f", {gold} or"
-	if hav_diamond:  # dimant
-		collection.update_one({"_id": author_id}, {"$inc": {"diamond": diamond}})
-		message += f", {diamond} diamant"
-	if hav_géode:  # géode
-		collection.update_one({"_id": author_id}, {"$inc": {"géode": géode}})
-		message += f", {géode} géode"
-	await ctx.channel.send(f"{message}, {ctx.author.mention}")
+# 	if hav_gold:  # or
+# 		collection.update_one({"_id": author_id}, {"$inc": {"gold": gold}})
+# 		message += f", {gold} or"
+# 	if hav_diamond:  # dimant
+# 		collection.update_one({"_id": author_id}, {"$inc": {"diamond": diamond}})
+# 		message += f", {diamond} diamant"
+# 	if hav_géode:  # géode
+# 		collection.update_one({"_id": author_id}, {"$inc": {"géode": géode}})
+# 		message += f", {géode} géode"
+# 	await ctx.channel.send(f"{message}, {ctx.author.mention}")
 
 
 @bot.command(name='week', aliases=["semaine","Week","Semaine"])
@@ -5470,13 +5516,13 @@ async def week(ctx):
 # 		max_page_nb = int(len(rank)/10)+1
 
 # 		if page == 1 and page == max_page_nb:
-# 			m = await ctx.channel.send(f"{ctx.author.mention}", embed=embed, components=[[Button(style=1, label="Previous Page", disabled=True), Button(style=1, label="Next Page", disabled=True)]])
+# 			m = await ctx.channel.send(f"{ctx.author.mention}", embed=embed, components=[[discord.ui.Button(style=discord.ButtonStyle.blurple, label="Previous Page", disabled=True), discord.ui.Button(style=discord.ButtonStyle.blurple, label="Next Page", disabled=True)]])
 # 		elif page == 1:
-# 			m = await ctx.channel.send(f"{ctx.author.mention}", embed=embed, components=[[Button(style=1, label="Previous Page", disabled=True), Button(style=1, label="Next Page")]])
+# 			m = await ctx.channel.send(f"{ctx.author.mention}", embed=embed, components=[[discord.ui.Button(style=discord.ButtonStyle.blurple, label="Previous Page", disabled=True), discord.ui.Button(style=discord.ButtonStyle.blurple, label="Next Page")]])
 # 		elif page == max_page_nb:
-# 			m = await ctx.channel.send(f"{ctx.author.mention}", embed=embed, components=[[Button(style=1, label="Previous Page"), Button(style=1, label="Next Page", disabled=True)]])
+# 			m = await ctx.channel.send(f"{ctx.author.mention}", embed=embed, components=[[discord.ui.Button(style=discord.ButtonStyle.blurple, label="Previous Page"), discord.ui.Button(style=discord.ButtonStyle.blurple, label="Next Page", disabled=True)]])
 # 		else:
-# 			m = await ctx.channel.send(f"{ctx.author.mention}", embed=embed, components=[[Button(style=1, label="Previous Page"), Button(style=1, label="Next Page")]])
+# 			m = await ctx.channel.send(f"{ctx.author.mention}", embed=embed, components=[[discord.ui.Button(style=discord.ButtonStyle.blurple, label="Previous Page"), discord.ui.Button(style=discord.ButtonStyle.blurple, label="Next Page")]])
 
 # 		while True:
 # 			def check(res):
@@ -5500,13 +5546,13 @@ async def week(ctx):
 
 # 			embed.set_footer(text=f"page {page}/{int(len(rank)/10)+1}")
 # 			if page == 1 and page == max_page_nb:
-# 				await m.edit(f"{ctx.author.mention}", embed=embed, components=[[Button(style=1, label="Previous Page", disabled=True), Button(style=1, label="Next Page", disabled=True)]])
+# 				await m.edit(f"{ctx.author.mention}", embed=embed, components=[[discord.ui.Button(style=discord.ButtonStyle.blurple, label="Previous Page", disabled=True), discord.ui.Button(style=discord.ButtonStyle.blurple, label="Next Page", disabled=True)]])
 # 			elif page == 1:
-# 				await m.edit(f"{ctx.author.mention}", embed=embed, components=[[Button(style=1, label="Previous Page", disabled=True), Button(style=1, label="Next Page")]])
+# 				await m.edit(f"{ctx.author.mention}", embed=embed, components=[[discord.ui.Button(style=discord.ButtonStyle.blurple, label="Previous Page", disabled=True), discord.ui.Button(style=discord.ButtonStyle.blurple, label="Next Page")]])
 # 			elif page == max_page_nb:
-# 				await m.edit(f"{ctx.author.mention}", embed=embed, components=[[Button(style=1, label="Previous Page"), Button(style=1, label="Next Page", disabled=True)]])
+# 				await m.edit(f"{ctx.author.mention}", embed=embed, components=[[discord.ui.Button(style=discord.ButtonStyle.blurple, label="Previous Page"), discord.ui.Button(style=discord.ButtonStyle.blurple, label="Next Page", disabled=True)]])
 # 			else:
-# 				await m.edit(f"{ctx.author.mention}", embed=embed, components=[[Button(style=1, label="Previous Page"), Button(style=1, label="Next Page")]])
+# 				await m.edit(f"{ctx.author.mention}", embed=embed, components=[[discord.ui.Button(style=discord.ButtonStyle.blurple, label="Previous Page"), discord.ui.Button(style=discord.ButtonStyle.blurple, label="Next Page")]])
 # 	elif arg == "month" or arg == "mois" or arg == "saison":
 # 		result = collection.find({}).sort(
 # 			[("niveau_month", pymongo.DESCENDING), ("xp_month", pymongo.DESCENDING)])
@@ -5534,13 +5580,13 @@ async def week(ctx):
 # 		max_page_nb = int(len(rank)/10)+1
 
 # 		if page == 1 and page == max_page_nb:
-# 			m = await ctx.channel.send(f"{ctx.author.mention}", embed=embed, components=[[Button(style=1, label="Previous Page", disabled=True), Button(style=1, label="Next Page", disabled=True)]])
+# 			m = await ctx.channel.send(f"{ctx.author.mention}", embed=embed, components=[[discord.ui.Button(style=discord.ButtonStyle.blurple, label="Previous Page", disabled=True), discord.ui.Button(style=discord.ButtonStyle.blurple, label="Next Page", disabled=True)]])
 # 		elif page == 1:
-# 			m = await ctx.channel.send(f"{ctx.author.mention}", embed=embed, components=[[Button(style=1, label="Previous Page", disabled=True), Button(style=1, label="Next Page")]])
+# 			m = await ctx.channel.send(f"{ctx.author.mention}", embed=embed, components=[[discord.ui.Button(style=discord.ButtonStyle.blurple, label="Previous Page", disabled=True), discord.ui.Button(style=discord.ButtonStyle.blurple, label="Next Page")]])
 # 		elif page == max_page_nb:
-# 			m = await ctx.channel.send(f"{ctx.author.mention}", embed=embed, components=[[Button(style=1, label="Previous Page"), Button(style=1, label="Next Page", disabled=True)]])
+# 			m = await ctx.channel.send(f"{ctx.author.mention}", embed=embed, components=[[discord.ui.Button(style=discord.ButtonStyle.blurple, label="Previous Page"), discord.ui.Button(style=discord.ButtonStyle.blurple, label="Next Page", disabled=True)]])
 # 		else:
-# 			m = await ctx.channel.send(f"{ctx.author.mention}", embed=embed, components=[[Button(style=1, label="Previous Page"), Button(style=1, label="Next Page")]])
+# 			m = await ctx.channel.send(f"{ctx.author.mention}", embed=embed, components=[[discord.ui.Button(style=discord.ButtonStyle.blurple, label="Previous Page"), discord.ui.Button(style=discord.ButtonStyle.blurple, label="Next Page")]])
 
 # 		while True:
 # 			def check(res):
@@ -5564,13 +5610,13 @@ async def week(ctx):
 
 # 			embed.set_footer(text=f"page {page}/{int(len(rank)/10)+1}")
 # 			if page == 1 and page == max_page_nb:
-# 				await m.edit(f"{ctx.author.mention}", embed=embed, components=[[Button(style=1, label="Previous Page", disabled=True), Button(style=1, label="Next Page", disabled=True)]])
+# 				await m.edit(f"{ctx.author.mention}", embed=embed, components=[[discord.ui.Button(style=discord.ButtonStyle.blurple, label="Previous Page", disabled=True), discord.ui.Button(style=discord.ButtonStyle.blurple, label="Next Page", disabled=True)]])
 # 			elif page == 1:
-# 				await m.edit(f"{ctx.author.mention}", embed=embed, components=[[Button(style=1, label="Previous Page", disabled=True), Button(style=1, label="Next Page")]])
+# 				await m.edit(f"{ctx.author.mention}", embed=embed, components=[[discord.ui.Button(style=discord.ButtonStyle.blurple, label="Previous Page", disabled=True), discord.ui.Button(style=discord.ButtonStyle.blurple, label="Next Page")]])
 # 			elif page == max_page_nb:
-# 				await m.edit(f"{ctx.author.mention}", embed=embed, components=[[Button(style=1, label="Previous Page"), Button(style=1, label="Next Page", disabled=True)]])
+# 				await m.edit(f"{ctx.author.mention}", embed=embed, components=[[discord.ui.Button(style=discord.ButtonStyle.blurple, label="Previous Page"), discord.ui.Button(style=discord.ButtonStyle.blurple, label="Next Page", disabled=True)]])
 # 			else:
-# 				await m.edit(f"{ctx.author.mention}", embed=embed, components=[[Button(style=1, label="Previous Page"), Button(style=1, label="Next Page")]])
+# 				await m.edit(f"{ctx.author.mention}", embed=embed, components=[[discord.ui.Button(style=discord.ButtonStyle.blurple, label="Previous Page"), discord.ui.Button(style=discord.ButtonStyle.blurple, label="Next Page")]])
 # 	elif arg == "week" or arg == "semaine":
 # 		result = collection.find({}).sort(
 # 			[("niveau_week", pymongo.DESCENDING), ("xp_week", pymongo.DESCENDING)])
@@ -5598,13 +5644,13 @@ async def week(ctx):
 # 		max_page_nb = int(len(rank)/10)+1
 
 # 		if page == 1 and page == max_page_nb:
-# 			m = await ctx.channel.send(f"{ctx.author.mention}", embed=embed, components=[[Button(style=1, label="Previous Page", disabled=True), Button(style=1, label="Next Page", disabled=True)]])
+# 			m = await ctx.channel.send(f"{ctx.author.mention}", embed=embed, components=[[discord.ui.Button(style=discord.ButtonStyle.blurple, label="Previous Page", disabled=True), discord.ui.Button(style=discord.ButtonStyle.blurple, label="Next Page", disabled=True)]])
 # 		elif page == 1:
-# 			m = await ctx.channel.send(f"{ctx.author.mention}", embed=embed, components=[[Button(style=1, label="Previous Page", disabled=True), Button(style=1, label="Next Page")]])
+# 			m = await ctx.channel.send(f"{ctx.author.mention}", embed=embed, components=[[discord.ui.Button(style=discord.ButtonStyle.blurple, label="Previous Page", disabled=True), discord.ui.Button(style=discord.ButtonStyle.blurple, label="Next Page")]])
 # 		elif page == max_page_nb:
-# 			m = await ctx.channel.send(f"{ctx.author.mention}", embed=embed, components=[[Button(style=1, label="Previous Page"), Button(style=1, label="Next Page", disabled=True)]])
+# 			m = await ctx.channel.send(f"{ctx.author.mention}", embed=embed, components=[[discord.ui.Button(style=discord.ButtonStyle.blurple, label="Previous Page"), discord.ui.Button(style=discord.ButtonStyle.blurple, label="Next Page", disabled=True)]])
 # 		else:
-# 			m = await ctx.channel.send(f"{ctx.author.mention}", embed=embed, components=[[Button(style=1, label="Previous Page"), Button(style=1, label="Next Page")]])
+# 			m = await ctx.channel.send(f"{ctx.author.mention}", embed=embed, components=[[discord.ui.Button(style=discord.ButtonStyle.blurple, label="Previous Page"), discord.ui.Button(style=discord.ButtonStyle.blurple, label="Next Page")]])
 
 # 		while True:
 # 			def check(res):
@@ -5628,13 +5674,13 @@ async def week(ctx):
 
 # 			embed.set_footer(text=f"page {page}/{int(len(rank)/10)+1}")
 # 			if page == 1 and page == max_page_nb:
-# 				await m.edit(f"{ctx.author.mention}", embed=embed, components=[[Button(style=1, label="Previous Page", disabled=True), Button(style=1, label="Next Page", disabled=True)]])
+# 				await m.edit(f"{ctx.author.mention}", embed=embed, components=[[discord.ui.Button(style=discord.ButtonStyle.blurple, label="Previous Page", disabled=True), discord.ui.Button(style=discord.ButtonStyle.blurple, label="Next Page", disabled=True)]])
 # 			elif page == 1:
-# 				await m.edit(f"{ctx.author.mention}", embed=embed, components=[[Button(style=1, label="Previous Page", disabled=True), Button(style=1, label="Next Page")]])
+# 				await m.edit(f"{ctx.author.mention}", embed=embed, components=[[discord.ui.Button(style=discord.ButtonStyle.blurple, label="Previous Page", disabled=True), discord.ui.Button(style=discord.ButtonStyle.blurple, label="Next Page")]])
 # 			elif page == max_page_nb:
-# 				await m.edit(f"{ctx.author.mention}", embed=embed, components=[[Button(style=1, label="Previous Page"), Button(style=1, label="Next Page", disabled=True)]])
+# 				await m.edit(f"{ctx.author.mention}", embed=embed, components=[[discord.ui.Button(style=discord.ButtonStyle.blurple, label="Previous Page"), discord.ui.Button(style=discord.ButtonStyle.blurple, label="Next Page", disabled=True)]])
 # 			else:
-# 				await m.edit(f"{ctx.author.mention}", embed=embed, components=[[Button(style=1, label="Previous Page"), Button(style=1, label="Next Page")]])
+# 				await m.edit(f"{ctx.author.mention}", embed=embed, components=[[discord.ui.Button(style=discord.ButtonStyle.blurple, label="Previous Page"), discord.ui.Button(style=discord.ButtonStyle.blurple, label="Next Page")]])
 # 	elif arg == "vote" or arg == "claim":
 # 		url = f'https://api.top-serveurs.net/v1/servers/{TOKEN_TOP_SERVEUR}/players-ranking'
 # 		reponse = requests.get(url)
@@ -5670,13 +5716,13 @@ async def week(ctx):
 # 		embed.set_footer(text=f"page {page}/{int(len(rank)/10)+1}")
 # 		max_page_nb = int(len(rank)/10)+1
 # 		if page == 1 and page == max_page_nb:
-# 			m = await ctx.channel.send(f"{ctx.author.mention}", embed=embed, components=[[Button(style=1, label="Previous Page", disabled=True), Button(style=1, label="Next Page", disabled=True)]])
+# 			m = await ctx.channel.send(f"{ctx.author.mention}", embed=embed, components=[[discord.ui.Button(style=discord.ButtonStyle.blurple, label="Previous Page", disabled=True), discord.ui.Button(style=discord.ButtonStyle.blurple, label="Next Page", disabled=True)]])
 # 		elif page == 1:
-# 			m = await ctx.channel.send(f"{ctx.author.mention}", embed=embed, components=[[Button(style=1, label="Previous Page", disabled=True), Button(style=1, label="Next Page")]])
+# 			m = await ctx.channel.send(f"{ctx.author.mention}", embed=embed, components=[[discord.ui.Button(style=discord.ButtonStyle.blurple, label="Previous Page", disabled=True), discord.ui.Button(style=discord.ButtonStyle.blurple, label="Next Page")]])
 # 		elif page == max_page_nb:
-# 			m = await ctx.channel.send(f"{ctx.author.mention}", embed=embed, components=[[Button(style=1, label="Previous Page"), Button(style=1, label="Next Page", disabled=True)]])
+# 			m = await ctx.channel.send(f"{ctx.author.mention}", embed=embed, components=[[discord.ui.Button(style=discord.ButtonStyle.blurple, label="Previous Page"), discord.ui.Button(style=discord.ButtonStyle.blurple, label="Next Page", disabled=True)]])
 # 		else:
-# 			m = await ctx.channel.send(f"{ctx.author.mention}", embed=embed, components=[[Button(style=1, label="Previous Page"), Button(style=1, label="Next Page")]])
+# 			m = await ctx.channel.send(f"{ctx.author.mention}", embed=embed, components=[[discord.ui.Button(style=discord.ButtonStyle.blurple, label="Previous Page"), discord.ui.Button(style=discord.ButtonStyle.blurple, label="Next Page")]])
 # 		while True:
 # 			def check(res):
 # 				return ctx.author == res.user and res.channel == ctx.channel
@@ -5698,13 +5744,13 @@ async def week(ctx):
 
 # 			embed.set_footer(text=f"page {page}/{int(len(rank)/10)+1}")
 # 			if page == 1 and page == max_page_nb:
-# 				await m.edit(f"{ctx.author.mention}", embed=embed, components=[[Button(style=1, label="Previous Page", disabled=True), Button(style=1, label="Next Page", disabled=True)]])
+# 				await m.edit(f"{ctx.author.mention}", embed=embed, components=[[discord.ui.Button(style=discord.ButtonStyle.blurple, label="Previous Page", disabled=True), discord.ui.Button(style=discord.ButtonStyle.blurple, label="Next Page", disabled=True)]])
 # 			elif page == 1:
-# 				await m.edit(f"{ctx.author.mention}", embed=embed, components=[[Button(style=1, label="Previous Page", disabled=True), Button(style=1, label="Next Page")]])
+# 				await m.edit(f"{ctx.author.mention}", embed=embed, components=[[discord.ui.Button(style=discord.ButtonStyle.blurple, label="Previous Page", disabled=True), discord.ui.Button(style=discord.ButtonStyle.blurple, label="Next Page")]])
 # 			elif page == max_page_nb:
-# 				await m.edit(f"{ctx.author.mention}", embed=embed, components=[[Button(style=1, label="Previous Page"), Button(style=1, label="Next Page", disabled=True)]])
+# 				await m.edit(f"{ctx.author.mention}", embed=embed, components=[[discord.ui.Button(style=discord.ButtonStyle.blurple, label="Previous Page"), discord.ui.Button(style=discord.ButtonStyle.blurple, label="Next Page", disabled=True)]])
 # 			else:
-# 				await m.edit(f"{ctx.author.mention}", embed=embed, components=[[Button(style=1, label="Previous Page"), Button(style=1, label="Next Page")]])
+# 				await m.edit(f"{ctx.author.mention}", embed=embed, components=[[discord.ui.Button(style=discord.ButtonStyle.blurple, label="Previous Page"), discord.ui.Button(style=discord.ButtonStyle.blurple, label="Next Page")]])
 
 
 @bot.command(name='canvas')
@@ -5774,7 +5820,7 @@ async def canvas(ctx):
 
 	# --- Avatare ---
 	AVATAR_SIZE = 64
-	avatar_asset = ctx.author.avatar_url_as(format='jpg', size=AVATAR_SIZE)
+	avatar_asset = ctx.author.avatar.with_format('jpg')
 
 	# read JPG from server to buffer (file-like object)
 	buffer_avatar = io.BytesIO()
@@ -5873,10 +5919,10 @@ async def canvas(ctx):
 # 	button_list = []
 # 	liste = []
 # 	for i in range(1, next_nb_path+1):
-# 		liste.append(Button(style=1, label=f"{i}"))
+# 		liste.append(discord.ui.Button(style=discord.ButtonStyle.blurple, label=f"{i}"))
 
 # 	button_list.append(liste)
-# 	button_list.append([Button(style=2, label="Home back")])
+# 	button_list.append([discord.ui.Button(style=2, label="Home back")])
 # 	m = await ctx.channel.send(f"{ctx.author.mention}", embed=embed, components=button_list)
 # 	aventure_id = m.id
 # 	collection.update_one({"_id": author_id}, {
@@ -5904,10 +5950,10 @@ async def canvas(ctx):
 # 		button_list = []
 # 		liste = []
 # 		for i in range(1, next_nb_path+1):
-# 			liste.append(Button(style=1, label=f"{i}"))
+# 			liste.append(discord.ui.Button(style=discord.ButtonStyle.blurple, label=f"{i}"))
 
 # 		button_list.append(liste)
-# 		button_list.append([Button(style=2, label="Home back")])
+# 		button_list.append([discord.ui.Button(style=2, label="Home back")])
 
 # 		if str(mort) == str(action):
 # 			embed = discord.Embed(
@@ -5933,7 +5979,7 @@ async def canvas(ctx):
 # 			}
 # 			collection.update_one({"_id": author_id}, {
 # 			                      "$set": {"aventure": [0, init_stuff, 0]}})
-# 			await m.edit(f"{ctx.author.mention}", embed=embed, components=[[Button(style=4, label="Loose", disabled=True)]])
+# 			await m.edit(f"{ctx.author.mention}", embed=embed, components=[[discord.ui.Button(style=4, label="Loose", disabled=True)]])
 # 		elif str(action[3:]) in ["1", "10", "100", "1000"]:
 # 			cant_trade = False
 # 			message = ""
@@ -5974,7 +6020,7 @@ async def canvas(ctx):
 # 			if cant_trade:
 # 				embed = discord.Embed(
 # 					title="Aventure", description=f"il vous manque {message[:-2]}")
-# 				await m.edit(f"{ctx.author.mention}", embed=embed, components=[[Button(style=1, label="nb 1",), Button(style=1, label="nb 10"), Button(style=1, label="nb 100")], [Button(style=2, label="Back Adventure",)]])
+# 				await m.edit(f"{ctx.author.mention}", embed=embed, components=[[discord.ui.Button(style=discord.ButtonStyle.blurple, label="nb 1",), discord.ui.Button(style=discord.ButtonStyle.blurple, label="nb 10"), discord.ui.Button(style=discord.ButtonStyle.blurple, label="nb 100")], [discord.ui.Button(style=2, label="Back Adventure",)]])
 # 			else:
 # 				if len(prix) == 1:
 # 					collection.update_one({"_id": author_id}, {
@@ -5995,7 +6041,7 @@ async def canvas(ctx):
 # 				                      "$inc": {str(contenue[3]): content*int(action[3:])}})
 # 				embed = discord.Embed(
 # 					title="Aventure", description=f"Vous avez reçu {content*int(action[3:])} {contenue[2]}\nVous pouvez encore en acheter si vous le souhaiter")
-# 				await m.edit(f"{ctx.author.mention}", embed=embed, components=[[Button(style=1, label="nb 1",), Button(style=1, label="nb 10"), Button(style=1, label="nb 100")], [Button(style=2, label="Back Adventure",)]])
+# 				await m.edit(f"{ctx.author.mention}", embed=embed, components=[[discord.ui.Button(style=discord.ButtonStyle.blurple, label="nb 1",), discord.ui.Button(style=discord.ButtonStyle.blurple, label="nb 10"), discord.ui.Button(style=discord.ButtonStyle.blurple, label="nb 100")], [discord.ui.Button(style=2, label="Back Adventure",)]])
 # 		elif str(trésors) == str(action):
 
 # 			rand = random()
@@ -6233,7 +6279,7 @@ async def canvas(ctx):
 # 			                      "$set": {"aventure": [0, init_stuff, 0]}})
 # 			embed = discord.Embed(title="Fin de l'aventure",
 # 			                      description=f"Vous êtes revenue de l'aventure saint et sauf\n\nVoici ton butin :\n{message4}{message[:-2]} {message2[:-2]} {message3[:-2]}")
-# 			await m.edit(f"{ctx.author.mention}", embed=embed, components=[[Button(style=3, label="Home", disabled=True)]])
+# 			await m.edit(f"{ctx.author.mention}", embed=embed, components=[[discord.ui.Button(style=3, label="Home", disabled=True)]])
 # 		elif "Yes" == str(action):
 # 			if event == 2:  # Petit mosntre
 
@@ -6366,7 +6412,7 @@ async def canvas(ctx):
 # 					}
 # 					collection.update_one({"_id": author_id}, {
 # 					                      "$set": {"aventure": [0, init_stuff, 0]}})
-# 					await m.edit(f"{ctx.author.mention}", embed=embed, components=[[Button(style=4, label="Loose", disabled=True)]])
+# 					await m.edit(f"{ctx.author.mention}", embed=embed, components=[[discord.ui.Button(style=4, label="Loose", disabled=True)]])
 # 			if event == 3:  # Gros mosntre
 # 				if random() < épée[author_sword][4]:  # un Monstre légendaire apparait
 # 					name_big_monster_lengendary = choice(gros_monstre_légendraire)
@@ -6498,7 +6544,7 @@ async def canvas(ctx):
 # 						}
 # 						collection.update_one({"_id": author_id}, {
 # 						                      "$set": {"aventure": [0, init_stuff, 0]}})
-# 						await m.edit(f"{ctx.author.mention}", embed=embed, components=[[Button(style=4, label="Loose", disabled=True)]])
+# 						await m.edit(f"{ctx.author.mention}", embed=embed, components=[[discord.ui.Button(style=4, label="Loose", disabled=True)]])
 # 				else:
 # 					name_little_monster = choice(gros_monstre)
 # 					rand = random()
@@ -6631,7 +6677,7 @@ async def canvas(ctx):
 # 						}
 # 						collection.update_one({"_id": author_id}, {
 # 						                      "$set": {"aventure": [0, init_stuff, 0]}})
-# 						await m.edit(f"{ctx.author.mention}", embed=embed, components=[[Button(style=4, label="Loose", disabled=True)]])
+# 						await m.edit(f"{ctx.author.mention}", embed=embed, components=[[discord.ui.Button(style=4, label="Loose", disabled=True)]])
 # 			if event == 4:  # Marchand
 # 				objet = choice(marchand)
 # 				prix = objet[:-1]
@@ -6648,14 +6694,14 @@ async def canvas(ctx):
 # 				embed = discord.Embed(
 # 					title="Aventure", description=f"**Un marchand** vous propose l'échange suivant\n\n{message}\n\nSi vous souhaiter faire le trade,cliquer sur Yes")
 # 				event = 6
-# 				await m.edit(f"{ctx.author.mention}", embed=embed, components=[[Button(style=3, label="Yes",), Button(style=4, label="No",)]])
+# 				await m.edit(f"{ctx.author.mention}", embed=embed, components=[[discord.ui.Button(style=3, label="Yes",), discord.ui.Button(style=4, label="No",)]])
 # 			if event == 5:  # Familler
 # 				embed = discord.Embed(
 # 					title="Aventure", description=f"vous avez clicker sur oui (famillier)")
 # 				await m.edit(f"{ctx.author.mention}", embed=embed, components=button_list)
 # 			if event == 6:  # Proposition
 # 				embed = discord.Embed(title="Aventure", description=f"{message}")
-# 				await m.edit(f"{ctx.author.mention}", embed=embed, components=[[Button(style=1, label="nb 1",), Button(style=1, label="nb 10"), Button(style=1, label="nb 100"), Button(style=1, label="nb 1000")], [Button(style=2, label="Back Adventure",)]])
+# 				await m.edit(f"{ctx.author.mention}", embed=embed, components=[[discord.ui.Button(style=discord.ButtonStyle.blurple, label="nb 1",), discord.ui.Button(style=discord.ButtonStyle.blurple, label="nb 10"), discord.ui.Button(style=discord.ButtonStyle.blurple, label="nb 100"), discord.ui.Button(style=discord.ButtonStyle.blurple, label="nb 1000")], [discord.ui.Button(style=2, label="Back Adventure",)]])
 # 		elif "No" == str(action):
 # 			if event == 2:
 # 				embed = discord.Embed(
@@ -7196,19 +7242,19 @@ async def canvas(ctx):
 # 			if event == 2:
 # 				embed = discord.Embed(
 # 					title="Aventure", description=f"Vous venez de rencontrer **un petit monstre** souhaitez vous l'affronter ?")
-# 				await m.edit(f"{ctx.author.mention}", embed=embed, components=[[Button(style=3, label="Yes",), Button(style=4, label="No",)]])
+# 				await m.edit(f"{ctx.author.mention}", embed=embed, components=[[discord.ui.Button(style=3, label="Yes",), discord.ui.Button(style=4, label="No",)]])
 # 			if event == 3:
 # 				embed = discord.Embed(
 # 					title="Aventure", description=f"Vous venez de rencontrer **un gros monstre** souhaitez vous l'affronter ?")
-# 				await m.edit(f"{ctx.author.mention}", embed=embed, components=[[Button(style=3, label="Yes",), Button(style=4, label="No",)]])
+# 				await m.edit(f"{ctx.author.mention}", embed=embed, components=[[discord.ui.Button(style=3, label="Yes",), discord.ui.Button(style=4, label="No",)]])
 # 			if event == 4:
 # 				embed = discord.Embed(
 # 					title="Aventure", description=f"Vous venez de rencontrer **un marchand** souhaitez vous commercer avec lui ?")
-# 				await m.edit(f"{ctx.author.mention}", embed=embed, components=[[Button(style=3, label="Yes",), Button(style=4, label="No",)]])
+# 				await m.edit(f"{ctx.author.mention}", embed=embed, components=[[discord.ui.Button(style=3, label="Yes",), discord.ui.Button(style=4, label="No",)]])
 # 			if event == 5:
 # 				embed = discord.Embed(
 # 					title="Aventure", description=f"Vous avez trouver **un famillier** sur la route souhaitez-vous essyer de l'aprivoiser")
-# 				await m.edit(f"{ctx.author.mention}", embed=embed, components=[[Button(style=3, label="Yes",), Button(style=4, label="No",)]])
+# 				await m.edit(f"{ctx.author.mention}", embed=embed, components=[[discord.ui.Button(style=3, label="Yes",), discord.ui.Button(style=4, label="No",)]])
 
 
 @bot.command(name='récompense_week')
@@ -7636,5 +7682,4 @@ async def biome(ctx, arg="qg58sdfdsyue4qsk"):
 			await ctx.send(f"Tu n'as pas le biome le biome **Pierre précieuse**, l'ami {ctx.author.mention}")
 
 
-print(open("TOKEN.txt").read())
 bot.run(open("TOKEN.txt").read())
